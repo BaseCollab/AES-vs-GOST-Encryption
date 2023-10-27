@@ -9,7 +9,7 @@ target_link_libraries(unit_tests PUBLIC unit_tests_impl)
 
 add_custom_target(run_unit_tests
     COMMENT "Running unit tests"
-    COMMAND ${EVM_BINARY_ROOT}/unit_tests --gtest_color=yes
+    COMMAND ${ENC_BINARY_ROOT}/unit_tests --gtest_color=yes
 )
 
 add_dependencies(run_unit_tests unit_tests)
