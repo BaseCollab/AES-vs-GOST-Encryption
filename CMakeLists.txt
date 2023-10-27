@@ -11,13 +11,6 @@ set(ENC_BINARY_ROOT ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -Werror -Wshadow")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
-add_subdirectory(aes)
-
-add_library(enc_static STATIC)
-target_link_libraries(enc_static PUBLIC
-    aes_impl
-)
-
 # --------------------------clang-format--------------------------------------
 
 file(GLOB_RECURSE ALL_SOURCES_FILES *.cpp *.h)
@@ -43,7 +36,6 @@ target_link_libraries(enc_static PUBLIC
     aes_impl
     gost_impl
     chacha20_impl
-    ${OPENSSL_LIBRARIES}
 )
 
 # --------------------------google-tests--------------------------------------
