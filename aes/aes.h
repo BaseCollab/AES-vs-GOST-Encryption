@@ -27,8 +27,10 @@ public:
     ~AES() = default;
 
 public:
-    int Encrypt(const uint8_t *plaintext, const uint8_t *key, uint8_t *ciphertext) const;
-    int Decrypt(const uint8_t *ciphertext, uint8_t *deciphertext) const;
+    void KeyExpansion(const uint8_t key[], uint8_t w[]);
+
+    void EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
+    void DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
 
 private:
     static constexpr size_t NR_DEFAULT = 10; // amount of rounds
@@ -47,9 +49,7 @@ private:
     void ShiftRow(State state, word_t row_num, uint8_t shift);
 
     // AES-round procedures
-    void KeyExpansion(const uint8_t key[], uint8_t w[]);
-
-    void AddRoundKey  (State state, uint8_t *key);
+    void AddRoundKey  (State state, const uint8_t *round_key);
     void ShiftRows    (State state);
     void ShiftRowsInv (State state);
     void SubBytes     (State state);

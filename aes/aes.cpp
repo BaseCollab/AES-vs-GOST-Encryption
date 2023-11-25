@@ -65,15 +65,15 @@ void AES::ShiftRow(AES::State state, word_t row_num, uint8_t shift)
 
 // AES-round procedures
 
-void AES::KeyExpansion(const uint8_t key[], uint8_t w[])
+void AES::KeyExpansion(const uint8_t key[], uint8_t key_expanded[])
 {
     uint8_t tmp [sizeof(word_t)];
     uint8_t rcon[sizeof(word_t)];
 
-    std::memcpy(w, key, sizeof(word_t) * key_length_);
+    std::memcpy(key_expanded, key, sizeof(word_t) * key_length_);
 
     for (size_t i = sizeof(word_t) * key_length_; i < sizeof(word_t) * AES::NB * (n_rounds_ + 1); i += sizeof(word_t)) {
-        std::memcpy(tmp, &(w[i - 4]), sizeof(word_t));
+        std::memcpy(tmp, &(key_expanded[i - 4]), sizeof(word_t));
 
         if ((i / sizeof(word_t)) % key_length_ == 0) {
             RotWord(tmp);
@@ -84,19 +84,19 @@ void AES::KeyExpansion(const uint8_t key[], uint8_t w[])
             SubWord(tmp);
         }
 
-        w[i + 0] = w[i + 0 - sizeof(word_t) * key_length_] ^ tmp[0];
-        w[i + 1] = w[i + 1 - sizeof(word_t) * key_length_] ^ tmp[1];
-        w[i + 2] = w[i + 2 - sizeof(word_t) * key_length_] ^ tmp[2];
-        w[i + 3] = w[i + 3 - sizeof(word_t) * key_length_] ^ tmp[3];
+        key_expanded[i + 0] = key_expanded[i + 0 - sizeof(word_t) * key_length_] ^ tmp[0];
+        key_expanded[i + 1] = key_expanded[i + 1 - sizeof(word_t) * key_length_] ^ tmp[1];
+        key_expanded[i + 2] = key_expanded[i + 2 - sizeof(word_t) * key_length_] ^ tmp[2];
+        key_expanded[i + 3] = key_expanded[i + 3 - sizeof(word_t) * key_length_] ^ tmp[3];
     }
 }
 
-void AES::AddRoundKey(AES::State state, uint8_t *key)
+void AES::AddRoundKey(AES::State state, const uint8_t *round_key)
 {
     for (size_t i = 0; i < sizeof(word_t); i++)
     {
         for (size_t j = 0; j < AES::NB; j++)
-            state[i][j] = state[i][j] ^ key[i + sizeof(word_t) * j];
+            state[i][j] = state[i][j] ^ round_key[i + sizeof(word_t) * j];
     }
 }
 
@@ -187,6 +187,58 @@ void AES::MixColumnsInv(AES::State state)
 
     for (size_t i = 0; i < sizeof(word_t); ++i)
         memcpy(state[i], state_tmp[i], AES::NB);
+}
+
+void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys)
+{
+    AES::State state;
+
+    for (size_t i = 0; i < sizeof(word_t); i++)
+        for (size_t j = 0; j < AES::NB; j++)
+            state[i][j] = in[i + sizeof(word_t) * j];
+
+    AddRoundKey(state, round_keys);
+
+    for (size_t round = 1; round < n_rounds_; round++) {
+        SubBytes(state);
+        ShiftRows(state);
+        MixColumns(state);
+        AddRoundKey(state, round_keys + round * sizeof(word_t) * AES::NB);
+    }
+
+    SubBytes(state);
+    ShiftRows(state);
+    AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
+
+    for (size_t i = 0; i < 4; i++)
+        for (size_t j = 0; j < AES::NB; j++)
+            out[i + sizeof(word_t) * j] = state[i][j];
+}
+
+void AES::DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys)
+{
+    AES::State state;
+
+    for (size_t i = 0; i < sizeof(word_t); i++)
+        for (size_t j = 0; j < AES::NB; j++)
+            state[i][j] = in[i + sizeof(word_t) * j];
+
+    AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
+
+    for (size_t round = n_rounds_ - 1; round > 0; round--) {
+        SubBytesInv(state);
+        ShiftRowsInv(state);
+        AddRoundKey(state, round_keys + round * sizeof(word_t) * AES::NB);
+        MixColumnsInv(state);
+    }
+
+    SubBytesInv(state);
+    ShiftRowsInv(state);
+    AddRoundKey(state, round_keys);
+
+    for (size_t i = 0; i < 4; i++)
+        for (size_t j = 0; j < AES::NB; j++)
+            out[i + sizeof(word_t) * j] = state[i][j];
 }
 
 } // namespace cryper
