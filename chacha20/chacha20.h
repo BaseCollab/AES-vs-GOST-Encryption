@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "common/intrinsics.h"
+#include "common/bit_operations.h"
 
 namespace ChaCha20
 {
@@ -52,6 +53,8 @@ class Cipher
 public:
     static constexpr size_t kBlockSize = 64;
 
+    static void Encrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
+                        uint8_t* in, uint8_t* out, const size_t len);
 
 private:
     FRIEND_TEST(ChaCha20Test, QuaterRound);
@@ -59,7 +62,10 @@ private:
     FRIEND_TEST(ChaCha20Test, BlockInner);
     FRIEND_TEST(ChaCha20Test, Block);
 
-    static constexpr size_t kRounds         = 20;
+    static constexpr size_t kBlockSizeShift  = 6;
+    static constexpr size_t kBlockSizeMask   = 0x3F;
+
+    static constexpr size_t kRounds          = 20;
     static constexpr size_t kBlockInnerIters = kRounds / 2;
 
     static constexpr size_t kNumConstant = 4;
@@ -74,9 +80,9 @@ private:
             state{}
         {}
 
-        inline State(const Key& initKey, const uint32_t counter, const Nonce& initNonce)
+        inline State(const Key& key, const uint32_t counter, const Nonce& nonce)
         {
-            Init(initKey, counter, initNonce);
+            Init(key, counter, nonce);
         }
 
         State& operator+=(const State& rhs)
@@ -96,15 +102,6 @@ private:
             input.nonce        = initNonce;
         }
 
-        inline void Serialize(uint8_t* out)
-        {
-            for (size_t i = 0; i < kStateSize; i++)
-            {
-                std::memcpy(out, state + i, sizeof(state[0]));
-                out += sizeof(state[0]);
-            }
-        }
-
         union
         {
             struct
@@ -116,20 +113,20 @@ private:
 
             } input;
 
+            uint8_t  buffer[kBlockSize];
             uint32_t state[kStateSize];
         };
     };
 
     static_assert(sizeof(State) == State::kStateSize * sizeof(uint32_t));
 
-    void Block(const Key& key, const uint32_t counter, const Nonce& nonce, uint8_t* out);
+    static void Block(const Key& key, const uint32_t counter, const Nonce& nonce, State* out);
 
-    void InnerBlock(State* state);
+    static void InnerBlock(State* state);
 
-    void QuarterRound(uint32_t* a, uint32_t* b, uint32_t* c, uint32_t* d);
+    static void QuarterRound(uint32_t* a, uint32_t* b, uint32_t* c, uint32_t* d);
 
 }; // Cipher
-
 
 } // namespace Chacha20
 

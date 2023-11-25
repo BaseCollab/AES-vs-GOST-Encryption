@@ -3,17 +3,38 @@
 namespace ChaCha20
 {
 
-void Cipher::Block(const Key& key, const uint32_t counter, const Nonce& nonce, uint8_t* out)
+void Cipher::Encrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
+                     uint8_t* in, uint8_t* out, const size_t len)
 {
-    State state{key, counter, nonce};
-    State work = state;
+    State keyStream{};
+
+    size_t j = 0;
+
+    for (j = 0; j < (len >> kBlockSizeShift); j++)
+    {
+        Block(key, counter + j, nonce, &keyStream);
+        BitOps::XorArray(out, in, keyStream.buffer, kBlockSize);
+
+        out += kBlockSize;
+        in  += kBlockSize;
+    }
+
+    if (len & kBlockSizeMask)
+    {
+        Block(key, counter + j, nonce, &keyStream);
+        BitOps::XorArray(out, in, keyStream.buffer, len & kBlockSizeMask);
+    }
+}
+
+void Cipher::Block(const Key& key, const uint32_t counter, const Nonce& nonce, State* state)
+{
+    state->Init(key, counter, nonce);
+    State work = *state;
 
     for (size_t i = 0; i < Cipher::kBlockInnerIters; i++)
         InnerBlock(&work);
 
-    state += work;
-
-    state.Serialize(out);
+    *state += work;
 }
 
 #define QROUND_(a, b, c, d) \
