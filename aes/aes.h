@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <cstring>
 
 class AES
 {
@@ -25,7 +26,7 @@ public:
 
 public:
     template <bool ReUseKey = true>
-    bool EncryptECB(const uint8_t in[], uint8_t out[], size_t size, const uint8_t key[])
+    bool EncryptECB(const uint8_t in[], uint8_t out[], size_t size, const uint8_t *key = nullptr)
     {
         if (size == 0 || size % BLOCK_SIZE != 0)
             return false;
@@ -40,7 +41,7 @@ public:
     }
 
     template <bool ReUseKey = true>
-    bool DecryptECB(const uint8_t in[], uint8_t out[], size_t size, const uint8_t key[])
+    bool DecryptECB(const uint8_t in[], uint8_t out[], size_t size, const uint8_t *key = nullptr)
     {
         if (size == 0 || size % BLOCK_SIZE != 0)
             return false;
@@ -54,12 +55,54 @@ public:
         return true;
     }
 
-private:
-    static constexpr size_t NR_DEFAULT = 10; // amount of rounds
-    static constexpr size_t NK_DEFAULT = 4;  // length of key in 32-bit words
+    template <bool ReUseKey = true>
+    bool EncryptCBC(const uint8_t in[], uint8_t out[], const uint8_t init_block[], size_t size, const uint8_t *key = nullptr)
+    {
+        if (size == 0 || size % BLOCK_SIZE != 0)
+            return false;
 
-    static constexpr size_t NR_MAX     = 14; // amount of rounds
-    static constexpr size_t NK_MAX     = 8;  // length of key in 32-bit words
+        if (ReUseKey == false)
+            KeyExpansion(key, round_keys_);
+
+        uint8_t block[BLOCK_SIZE];
+        std::memcpy(block, init_block, sizeof(block));
+
+        for (size_t i = 0; i < size; i += BLOCK_SIZE) {
+            XorBlocks<BLOCK_SIZE>(block, in + i, block);
+            EncryptBlock(block, out + i, round_keys_);
+            std::memcpy(block, out + i, BLOCK_SIZE);
+        }
+
+        return true;
+    }
+
+    template <bool ReUseKey = true>
+    bool DecryptCBC(const uint8_t in[], uint8_t out[], const uint8_t init_block[], size_t size, const uint8_t *key = nullptr)
+    {
+        if (size == 0 || size % BLOCK_SIZE != 0)
+            return false;
+
+        if (ReUseKey == false)
+            KeyExpansion(key, round_keys_);
+
+        uint8_t block[BLOCK_SIZE];
+        std::memcpy(block, init_block, sizeof(block));
+
+        for (size_t i = 0; i < size; i += BLOCK_SIZE) {
+            DecryptBlock(in + i, out + i, round_keys_);
+            XorBlocks<BLOCK_SIZE>(block, out + i, out + i);
+            std::memcpy(block, in + i, BLOCK_SIZE);
+        }
+
+        return true;
+    }
+
+private:
+    static constexpr size_t NR_DEFAULT = 10; // default amount of rounds (AES-128)
+    static constexpr size_t NK_DEFAULT = 4;  // length of key in 32-bit words (AES-128)
+
+    static constexpr size_t NR_MAX     = 14; // maximum possible amount of rounds (AES-256)
+    static constexpr size_t NK_MAX     = 8;  // maximum possible length of key in 32-bit words (AES-256)
 
     static constexpr size_t NB         = 4;  // length of input in 32-bit words
 
@@ -72,17 +115,51 @@ private:
     void DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
 
     // Methods-helpers
-    void RotWord (uint8_t *word);
-    void XorWords(const uint8_t *word_in_1, const uint8_t *word_in_2, uint8_t *word_out);
-    void SubWord (uint8_t *word);
-    void Rcon    (uint8_t *word, word_t row_num);
+    template <size_t Size>
+    void XorBlocks(const uint8_t block_in_1[], const uint8_t block_in_2[], uint8_t block_out[])
+    {
+        for (size_t i = 0; i < Size; i++)
+            block_out[i] = block_in_1[i] ^ block_in_2[i];
+    }
 
-    void ShiftRow(State state, word_t row_num, uint8_t shift);
+    void XorWords(const uint8_t word_in_1[], const uint8_t word_in_2[], uint8_t word_out[])
+    {
+        XorBlocks<sizeof(word_t)>(word_in_1, word_in_2, word_out);
+    }
+
+    void RotWord(uint8_t word[])
+    {
+        uint8_t tmp = word[0];
+        word[0] = word[1];
+        word[1] = word[2];
+        word[2] = word[3];
+        word[3] = tmp;
+    }
+
+    void SubWord(uint8_t word[])
+    {
+        for (size_t i = 0; i < sizeof(word_t); i++)
+            word[i] = SBOX[word[i] >> 4][word[i] & 0b00001111];
+    }
+
+    void Rcon(uint8_t word[], word_t row_num)
+    {
+        std::memcpy(word, RCON[row_num], sizeof(word_t));
+    }
+
+    void ShiftRow(State state, word_t row_num, uint8_t shift)
+    {
+        uint8_t tmp[AES::NB];
+        for (size_t j = 0; j < AES::NB; j++)
+            tmp[j] = state[row_num][(j + shift) % AES::NB];
+
+        std::memcpy(state[row_num], tmp, AES::NB * sizeof(uint8_t));
+    }
 
     // AES-round procedures
     void KeyExpansion(const uint8_t key[], uint8_t key_expanded[]);
 
-    void AddRoundKey  (State state, const uint8_t *round_key);
+    void AddRoundKey  (State state, const uint8_t round_key[]);
     void ShiftRows    (State state);
     void ShiftRowsInv (State state);
     void SubBytes     (State state);

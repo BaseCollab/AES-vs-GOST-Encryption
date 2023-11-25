@@ -23,43 +23,6 @@ AES::AES(const AES::KeyLength key_length)
     }
 }
 
-// Functions-helpers
-
-void AES::RotWord(uint8_t *word)
-{
-    uint8_t tmp = word[0];
-    word[0] = word[1];
-    word[1] = word[2];
-    word[2] = word[3];
-    word[3] = tmp;
-}
-
-void AES::XorWords(const uint8_t *word_in_1, const uint8_t *word_in_2, uint8_t *word_out)
-{
-    for (size_t i = 0; i < sizeof(word_t); i++)
-        word_out[i] = word_in_1[i] ^ word_in_2[i];
-}
-
-void AES::SubWord(uint8_t *word)
-{
-    for (size_t i = 0; i < sizeof(word_t); i++)
-        word[i] = AES::SBOX[word[i] >> 4][word[i] & 0b00001111];
-}
-
-void AES::Rcon(uint8_t *word, word_t row_num)
-{
-    std::memcpy(word, RCON[row_num], sizeof(word_t));
-}
-
-void AES::ShiftRow(AES::State state, word_t row_num, uint8_t shift)
-{
-    uint8_t tmp[AES::NB];
-    for (size_t j = 0; j < AES::NB; j++)
-        tmp[j] = state[row_num][(j + shift) % AES::NB];
-
-    std::memcpy(state[row_num], tmp, AES::NB * sizeof(uint8_t));
-}
-
 // AES-round procedures
 
 void AES::KeyExpansion(const uint8_t key[], uint8_t key_expanded[])
