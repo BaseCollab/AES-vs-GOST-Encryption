@@ -73,7 +73,7 @@ private:
 
     // Methods-helpers
     void RotWord (uint8_t *word);
-    void XorWords(uint8_t *word_in_1, uint8_t *word_in_2, uint8_t *word_out);
+    void XorWords(const uint8_t *word_in_1, const uint8_t *word_in_2, uint8_t *word_out);
     void SubWord (uint8_t *word);
     void Rcon    (uint8_t *word, word_t row_num);
 

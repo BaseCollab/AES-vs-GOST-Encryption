@@ -34,7 +34,7 @@ void AES::RotWord(uint8_t *word)
     word[3] = tmp;
 }
 
-void AES::XorWords(uint8_t *word_in_1, uint8_t *word_in_2, uint8_t *word_out)
+void AES::XorWords(const uint8_t *word_in_1, const uint8_t *word_in_2, uint8_t *word_out)
 {
     for (size_t i = 0; i < sizeof(word_t); i++)
         word_out[i] = word_in_1[i] ^ word_in_2[i];
@@ -43,7 +43,7 @@ void AES::XorWords(uint8_t *word_in_1, uint8_t *word_in_2, uint8_t *word_out)
 void AES::SubWord(uint8_t *word)
 {
     for (size_t i = 0; i < sizeof(word_t); i++)
-        word[i] = AES::SBOX[word[i] & 0b11110000][word[i] & 0b00001111];
+        word[i] = AES::SBOX[word[i] >> 4][word[i] & 0b00001111];
 }
 
 void AES::Rcon(uint8_t *word, word_t row_num)
@@ -70,12 +70,12 @@ void AES::KeyExpansion(const uint8_t key[], uint8_t key_expanded[])
     std::memcpy(key_expanded, key, sizeof(word_t) * key_length_);
 
     for (size_t i = sizeof(word_t) * key_length_; i < sizeof(word_t) * AES::NB * (n_rounds_ + 1); i += sizeof(word_t)) {
-        std::memcpy(tmp, &(key_expanded[i - 4]), sizeof(word_t));
+        std::memcpy(tmp, &(key_expanded[i - sizeof(word_t)]), sizeof(word_t));
 
         if ((i / sizeof(word_t)) % key_length_ == 0) {
             RotWord(tmp);
             SubWord(tmp);
-            Rcon(rcon, (i / 4) / key_length_);
+            Rcon(rcon, (i / sizeof(word_t)) / key_length_);
             XorWords(tmp, rcon, tmp);
         } else if (key_length_ > 6 && (i / sizeof(word_t)) % key_length_ == 4) {
             SubWord(tmp);
@@ -119,7 +119,7 @@ void AES::SubBytes(AES::State state)
     for (size_t i = 0; i < sizeof(word_t); i++) {
         for (size_t j = 0; j < AES::NB; j++) {
             uint8_t tmp = state[i][j];
-            state[i][j] = AES::SBOX[tmp & 0b11110000][tmp & 0b00001111];
+            state[i][j] = AES::SBOX[tmp >> 4][tmp & 0b00001111];
         }
     }
 }
@@ -129,7 +129,7 @@ void AES::SubBytesInv(AES::State state)
     for (size_t i = 0; i < sizeof(word_t); i++) {
         for (size_t j = 0; j < AES::NB; j++) {
             uint8_t tmp = state[i][j];
-            state[i][j] = AES::SBOX_INV[tmp & 0b11110000][tmp & 0b00001111];
+            state[i][j] = AES::SBOX_INV[tmp >> 4][tmp & 0b00001111];
         }
     }
 }
