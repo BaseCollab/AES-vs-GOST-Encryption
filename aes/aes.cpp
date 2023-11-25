@@ -93,8 +93,7 @@ void AES::KeyExpansion(const uint8_t key[], uint8_t key_expanded[])
 
 void AES::AddRoundKey(AES::State state, const uint8_t *round_key)
 {
-    for (size_t i = 0; i < sizeof(word_t); i++)
-    {
+    for (size_t i = 0; i < sizeof(word_t); i++) {
         for (size_t j = 0; j < AES::NB; j++)
             state[i][j] = state[i][j] ^ round_key[i + sizeof(word_t) * j];
     }
@@ -120,10 +119,8 @@ void AES::ShiftRowsInv(AES::State state)
 
 void AES::SubBytes(AES::State state)
 {
-    for (size_t i = 0; i < sizeof(word_t); i++)
-    {
-        for (size_t j = 0; j < AES::NB; j++)
-        {
+    for (size_t i = 0; i < sizeof(word_t); i++) {
+        for (size_t j = 0; j < AES::NB; j++) {
             uint8_t tmp = state[i][j];
             state[i][j] = AES::SBOX[tmp & 0b11110000][tmp & 0b00001111];
         }
@@ -132,10 +129,8 @@ void AES::SubBytes(AES::State state)
 
 void AES::SubBytesInv(AES::State state)
 {
-    for (size_t i = 0; i < sizeof(word_t); i++)
-    {
-        for (size_t j = 0; j < AES::NB; j++)
-        {
+    for (size_t i = 0; i < sizeof(word_t); i++) {
+        for (size_t j = 0; j < AES::NB; j++) {
             uint8_t tmp = state[i][j];
             state[i][j] = AES::SBOX_INV[tmp & 0b11110000][tmp & 0b00001111];
         }
@@ -151,12 +146,9 @@ void AES::MixColumns(AES::State state)
     for (size_t i = 0; i < sizeof(word_t); ++i)
         memset(state_tmp[i], 0, AES::NB);
 
-    for (size_t i = 0; i < sizeof(word_t); ++i)
-    {
-        for (size_t k = 0; k < sizeof(word_t); ++k)
-        {
-            for (size_t j = 0; j < AES::NB; ++j)
-            {
+    for (size_t i = 0; i < sizeof(word_t); ++i) {
+        for (size_t k = 0; k < sizeof(word_t); ++k) {
+            for (size_t j = 0; j < AES::NB; ++j) {
                 if (CMDS[i][k] == 1)
                     state_tmp[i][j] ^= state[k][j];
                 else
@@ -176,10 +168,8 @@ void AES::MixColumnsInv(AES::State state)
     for (size_t i = 0; i < sizeof(word_t); ++i)
         memset(state_tmp[i], 0, AES::NB);
 
-    for (size_t i = 0; i < sizeof(word_t); ++i)
-    {
-        for (size_t k = 0; k < sizeof(word_t); ++k)
-        {
+    for (size_t i = 0; i < sizeof(word_t); ++i) {
+        for (size_t k = 0; k < sizeof(word_t); ++k) {
             for (size_t j = 0; j < AES::NB; ++j)
                 state_tmp[i][j] ^= GALOI_MUL_TABLE[CMDS_INV[i][k]][state[k][j]];
         }
@@ -210,7 +200,7 @@ void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
     ShiftRows(state);
     AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
 
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < sizeof(word_t); i++)
         for (size_t j = 0; j < AES::NB; j++)
             out[i + sizeof(word_t) * j] = state[i][j];
 }
@@ -236,7 +226,7 @@ void AES::DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
     ShiftRowsInv(state);
     AddRoundKey(state, round_keys);
 
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < sizeof(word_t); i++)
         for (size_t j = 0; j < AES::NB; j++)
             out[i + sizeof(word_t) * j] = state[i][j];
 }
