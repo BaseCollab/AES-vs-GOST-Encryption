@@ -7,9 +7,6 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace cryper
-{
-
 class AES
 {
 public:
@@ -27,19 +24,53 @@ public:
     ~AES() = default;
 
 public:
-    void KeyExpansion(const uint8_t key[], uint8_t w[]);
+    template <bool ReUseKey = true>
+    bool EncryptECB(const uint8_t in[], uint8_t out[], size_t size, const uint8_t key[])
+    {
+        if (size == 0 || size % BLOCK_SIZE != 0)
+            return false;
 
-    void EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
-    void DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
+        if (ReUseKey == false)
+            KeyExpansion(key, round_keys_);
+
+        for (size_t i = 0; i < size; i += BLOCK_SIZE)
+            EncryptBlock(in + i, out + i, round_keys_);
+
+        return true;
+    }
+
+    template <bool ReUseKey = true>
+    bool DecryptECB(const uint8_t in[], uint8_t out[], size_t size, const uint8_t key[])
+    {
+        if (size == 0 || size % BLOCK_SIZE != 0)
+            return false;
+
+        if (ReUseKey == false)
+            KeyExpansion(key, round_keys_);
+
+        for (size_t i = 0; i < size; i += BLOCK_SIZE)
+            DecryptBlock(in + i, out + i, round_keys_);
+
+        return true;
+    }
 
 private:
     static constexpr size_t NR_DEFAULT = 10; // amount of rounds
     static constexpr size_t NK_DEFAULT = 4;  // length of key in 32-bit words
+
+    static constexpr size_t NR_MAX     = 14; // amount of rounds
+    static constexpr size_t NK_MAX     = 8;  // length of key in 32-bit words
+
     static constexpr size_t NB         = 4;  // length of input in 32-bit words
+
+    static constexpr size_t BLOCK_SIZE = NB * sizeof(word_t);
 
     typedef uint8_t State[sizeof(word_t)][NB];
 
 private:
+    void EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
+    void DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys);
+
     // Methods-helpers
     void RotWord (uint8_t *word);
     void XorWords(uint8_t *word_in_1, uint8_t *word_in_2, uint8_t *word_out);
@@ -49,6 +80,8 @@ private:
     void ShiftRow(State state, word_t row_num, uint8_t shift);
 
     // AES-round procedures
+    void KeyExpansion(const uint8_t key[], uint8_t key_expanded[]);
+
     void AddRoundKey  (State state, const uint8_t *round_key);
     void ShiftRows    (State state);
     void ShiftRowsInv (State state);
@@ -60,6 +93,8 @@ private:
 private:
     size_t n_rounds_   {NR_DEFAULT};
     size_t key_length_ {NK_DEFAULT};
+
+    uint8_t round_keys_[sizeof(word_t) * NB * (NR_MAX + 1)] {0};
 
 private:
     static constexpr uint8_t SBOX[][16] = {
@@ -120,7 +155,7 @@ private:
         {}, // x * 0x1 = x (GF(256))
 
         // x * 0x2 = table[x] (GF(256))
-        // Used in AES ecryption (MixColumns())
+        // Used in AES encryption (MixColumns())
         {
             0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16,
             0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e,
@@ -147,7 +182,7 @@ private:
         },
 
         // x * 0x3 = table[x] (GF(256))
-        // Used in AES ecryption (MixColumns())
+        // Used in AES encryption (MixColumns())
         {
             0x00, 0x03, 0x06, 0x05, 0x0c, 0x0f, 0x0a, 0x09, 0x18, 0x1b, 0x1e, 0x1d,
             0x14, 0x17, 0x12, 0x11, 0x30, 0x33, 0x36, 0x35, 0x3c, 0x3f, 0x3a, 0x39,
@@ -306,7 +341,5 @@ private:
         {0xb, 0xd, 0x9, 0xe}
     };
 };
-
-} // namespace cryper
 
 #endif // ENCRYPTION_AES_AES_H

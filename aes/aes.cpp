@@ -5,9 +5,6 @@
 #include <cstdint>
 #include <cstring>
 
-namespace cryper
-{
-
 AES::AES(const AES::KeyLength key_length)
 {
     switch (key_length) {
@@ -230,5 +227,3 @@ void AES::DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
         for (size_t j = 0; j < AES::NB; j++)
             out[i + sizeof(word_t) * j] = state[i][j];
 }
-
-} // namespace cryper
