@@ -38,17 +38,24 @@ private:
     typedef uint8_t State[sizeof(word_t)][NB];
 
 private:
-    void RotWord(uint8_t *word);
+    // Methods-helpers
+    void RotWord (uint8_t *word);
     void XorWords(uint8_t *word_in_1, uint8_t *word_in_2, uint8_t *word_out);
-    void SubWord(uint8_t *word);
-    void Rcon(uint8_t *word, word_t row_num);
+    void SubWord (uint8_t *word);
+    void Rcon    (uint8_t *word, word_t row_num);
 
+    void ShiftRow(State state, word_t row_num, uint8_t shift);
+
+    // AES-round procedures
     void KeyExpansion(const uint8_t key[], uint8_t w[]);
 
-    void AddRoundKey(AES::State state, uint8_t *key);
-    void ShiftRow(State state, word_t row_num, uint8_t shift);
-    void ShiftRows(State state);
-    void SubBytes(State state);
+    void AddRoundKey  (State state, uint8_t *key);
+    void ShiftRows    (State state);
+    void ShiftRowsInv (State state);
+    void SubBytes     (State state);
+    void SubBytesInv  (State state);
+    void MixColumns   (State state);
+    void MixColumnsInv(State state);
 
 private:
     size_t n_rounds_   {NR_DEFAULT};
@@ -108,7 +115,7 @@ private:
     };
 
     /// Galois multiplication lookup tables
-    static const uint8_t GALOI_MUL_TABLE[][256] = {
+    static constexpr uint8_t GALOI_MUL_TABLE[][256] = {
         {}, // x * 0x0 = 0 (GF(256))
         {}, // x * 0x1 = x (GF(256))
 
@@ -285,12 +292,18 @@ private:
         }
     };
 
-    /// circulant MDS matrix
-    static const uint8_t CMDS[][sizeof(word_t)] = {
-        {0x2, 0x3, 0x1, 0x1}, 
-        {0x1, 0x2, 0x3, 0x1}, 
-        {0x1, 0x1, 0x2, 0x3}, 
+    static constexpr uint8_t CMDS[][sizeof(word_t)] = {
+        {0x2, 0x3, 0x1, 0x1},
+        {0x1, 0x2, 0x3, 0x1},
+        {0x1, 0x1, 0x2, 0x3},
         {0x3, 0x1, 0x1, 0x2}
+    };
+
+    static constexpr uint8_t CMDS_INV[][sizeof(word_t)] = {
+        {0xe, 0xb, 0xd, 0x9},
+        {0x9, 0xe, 0xb, 0xd},
+        {0xd, 0x9, 0xe, 0xb},
+        {0xb, 0xd, 0x9, 0xe}
     };
 };
 

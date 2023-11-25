@@ -26,6 +26,8 @@ AES::AES(const AES::KeyLength key_length)
     }
 }
 
+// Functions-helpers
+
 void AES::RotWord(uint8_t *word)
 {
     uint8_t tmp = word[0];
@@ -51,6 +53,17 @@ void AES::Rcon(uint8_t *word, word_t row_num)
 {
     std::memcpy(word, RCON[row_num], sizeof(word_t));
 }
+
+void AES::ShiftRow(AES::State state, word_t row_num, uint8_t shift)
+{
+    uint8_t tmp[AES::NB];
+    for (size_t j = 0; j < AES::NB; j++)
+        tmp[j] = state[row_num][(j + shift) % AES::NB];
+
+    std::memcpy(state[row_num], tmp, AES::NB * sizeof(uint8_t));
+}
+
+// AES-round procedures
 
 void AES::KeyExpansion(const uint8_t key[], uint8_t w[])
 {
@@ -87,14 +100,7 @@ void AES::AddRoundKey(AES::State state, uint8_t *key)
     }
 }
 
-void AES::ShiftRow(AES::State state, word_t row_num, uint8_t shift)
-{
-    uint8_t tmp[AES::NB];
-    for (size_t j = 0; j < AES::NB; j++)
-        tmp[j] = state[row_num][(j + shift) % AES::NB];
-
-    std::memcpy(state[row_num], tmp, AES::NB * sizeof(uint8_t));
-}
+// ShiftRows for encryption/decryption
 
 void AES::ShiftRows(AES::State state)
 {
@@ -102,6 +108,15 @@ void AES::ShiftRows(AES::State state)
     ShiftRow(state, 2, 2);
     ShiftRow(state, 3, 3);
 }
+
+void AES::ShiftRowsInv(AES::State state)
+{
+    ShiftRow(state, 1, AES::NB - 1);
+    ShiftRow(state, 2, AES::NB - 2);
+    ShiftRow(state, 3, AES::NB - 3);
+}
+
+// SubBytes for encryption/decryption
 
 void AES::SubBytes(AES::State state)
 {
@@ -114,6 +129,20 @@ void AES::SubBytes(AES::State state)
         }
     }
 }
+
+void AES::SubBytesInv(AES::State state)
+{
+    for (size_t i = 0; i < sizeof(word_t); i++)
+    {
+        for (size_t j = 0; j < AES::NB; j++)
+        {
+            uint8_t tmp = state[i][j];
+            state[i][j] = AES::SBOX_INV[tmp & 0b11110000][tmp & 0b00001111];
+        }
+    }
+}
+
+// MixColumns for encryption/decryption
 
 void AES::MixColumns(AES::State state)
 {
@@ -133,6 +162,26 @@ void AES::MixColumns(AES::State state)
                 else
                     state_tmp[i][j] ^= GALOI_MUL_TABLE[CMDS[i][k]][state[k][j]];
             }
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(word_t); ++i)
+        memcpy(state[i], state_tmp[i], AES::NB);
+}
+
+void AES::MixColumnsInv(AES::State state)
+{
+    AES::State state_tmp;
+
+    for (size_t i = 0; i < sizeof(word_t); ++i)
+        memset(state_tmp[i], 0, AES::NB);
+
+    for (size_t i = 0; i < sizeof(word_t); ++i)
+    {
+        for (size_t k = 0; k < sizeof(word_t); ++k)
+        {
+            for (size_t j = 0; j < AES::NB; ++j)
+                state_tmp[i][j] ^= GALOI_MUL_TABLE[CMDS_INV[i][k]][state[k][j]];
         }
     }
 
