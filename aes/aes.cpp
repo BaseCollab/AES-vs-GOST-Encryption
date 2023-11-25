@@ -115,4 +115,28 @@ void AES::SubBytes(AES::State state)
     }
 }
 
+void AES::MixColumns(AES::State state) {
+    AES::State state_tmp;
+
+    for (size_t i = 0; i < sizeof(word_t); ++i)
+        memset(state_tmp[i], 0, AES::NB);
+
+    for (size_t i = 0; i < 4; ++i)
+    {
+        for (size_t k = 0; k < 4; ++k)
+        {
+            for (size_t j = 0; j < 4; ++j)
+            {
+                if (CMDS[i][k] == 1)
+                    state_tmp[i][j] ^= state[k][j];
+                else
+                    state_tmp[i][j] ^= GF_MUL_TABLE[CMDS[i][k]][state[k][j]];
+            }
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(word_t); ++i)
+        memcpy(state[i], state_tmp[i], AES::NB);
+}
+
 } // namespace cryper
