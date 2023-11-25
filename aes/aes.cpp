@@ -115,7 +115,8 @@ void AES::SubBytes(AES::State state)
     }
 }
 
-void AES::MixColumns(AES::State state) {
+void AES::MixColumns(AES::State state)
+{
     AES::State state_tmp;
 
     for (size_t i = 0; i < sizeof(word_t); ++i)
@@ -130,7 +131,7 @@ void AES::MixColumns(AES::State state) {
                 if (CMDS[i][k] == 1)
                     state_tmp[i][j] ^= state[k][j];
                 else
-                    state_tmp[i][j] ^= GF_MUL_TABLE[CMDS[i][k]][state[k][j]];
+                    state_tmp[i][j] ^= GALOI_MUL_TABLE[CMDS[i][k]][state[k][j]];
             }
         }
     }
