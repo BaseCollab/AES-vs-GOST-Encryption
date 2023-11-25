@@ -35,10 +35,12 @@ message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
 # --------------------------project-libs--------------------------------------
 
 add_subdirectory(aes)
+add_subdirectory(chacha20)
 
 add_library(enc_static STATIC)
 target_link_libraries(enc_static PUBLIC
     aes_impl
+    chacha20_impl
     ${OPENSSL_LIBRARIES}
 )
 

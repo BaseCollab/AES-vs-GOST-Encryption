@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(SOURCES main.cpp)
+set(SOURCES main.cpp
+            chacha20/chacha20_test.cpp)
 
 add_library(unit_tests_impl OBJECT ${SOURCES})
 target_include_directories(unit_tests_impl PUBLIC ${ENC_ROOT})
