@@ -121,11 +121,11 @@ void AES::MixColumns(AES::State state) {
     for (size_t i = 0; i < sizeof(word_t); ++i)
         memset(state_tmp[i], 0, AES::NB);
 
-    for (size_t i = 0; i < 4; ++i)
+    for (size_t i = 0; i < sizeof(word_t); ++i)
     {
-        for (size_t k = 0; k < 4; ++k)
+        for (size_t k = 0; k < sizeof(word_t); ++k)
         {
-            for (size_t j = 0; j < 4; ++j)
+            for (size_t j = 0; j < AES::NB; ++j)
             {
                 if (CMDS[i][k] == 1)
                     state_tmp[i][j] ^= state[k][j];

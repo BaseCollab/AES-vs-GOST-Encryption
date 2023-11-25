@@ -93,7 +93,7 @@ private:
         {0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d}
     };
 
-    static constexpr uint8_t RCON[][4] = {
+    static constexpr uint8_t RCON[][sizeof(word_t)] = {
         {0x00, 0x00, 0x00, 0x00},
         {0x01, 0x00, 0x00, 0x00},
         {0x02, 0x00, 0x00, 0x00},
@@ -280,7 +280,7 @@ private:
     };
 
     /// circulant MDS matrix
-    static const uint8_t CMDS[4][4] = {
+    static const uint8_t CMDS[][sizeof(word_t)] = {
         {2, 3, 1, 1}, {1, 2, 3, 1}, {1, 1, 2, 3}, {3, 1, 1, 2}
     };
 };
