@@ -4,7 +4,7 @@ namespace ChaCha20
 {
 
 void Cipher::Encrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
-                     uint8_t* in, uint8_t* out, const size_t len)
+                     const uint8_t* plaintext, uint8_t* ciphertext, const size_t len)
 {
     State keyStream{};
 
@@ -13,17 +13,23 @@ void Cipher::Encrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
     for (j = 0; j < (len >> kBlockSizeShift); j++)
     {
         Block(key, counter + j, nonce, &keyStream);
-        BitOps::XorArray(out, in, keyStream.buffer, kBlockSize);
+        BitOps::XorArray(ciphertext, plaintext, keyStream.buffer, kBlockSize);
 
-        out += kBlockSize;
-        in  += kBlockSize;
+        ciphertext += kBlockSize;
+        plaintext  += kBlockSize;
     }
 
     if (len & kBlockSizeMask)
     {
         Block(key, counter + j, nonce, &keyStream);
-        BitOps::XorArray(out, in, keyStream.buffer, len & kBlockSizeMask);
+        BitOps::XorArray(ciphertext, plaintext, keyStream.buffer, len & kBlockSizeMask);
     }
+}
+
+void Cipher::Decrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
+                     const uint8_t* ciphertext, uint8_t* plaintext, const size_t len)
+{
+    Encrypt(key, counter, nonce, ciphertext, plaintext, len);
 }
 
 void Cipher::Block(const Key& key, const uint32_t counter, const Nonce& nonce, State* state)
