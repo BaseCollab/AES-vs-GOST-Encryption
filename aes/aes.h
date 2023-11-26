@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstring>
+#include <climits>
+#include <iostream>
 
 class AES
 {
@@ -97,6 +99,40 @@ public:
         return true;
     }
 
+    template <bool ReUseKey = true>
+    bool EncryptCTR(const uint8_t in[], uint8_t out[], const uint8_t init_block[], size_t size, const uint8_t *key = nullptr)
+    {
+        if (size == 0 || size % BLOCK_SIZE != 0)
+            return false;
+
+        if (ReUseKey == false)
+            KeyExpansion(key, round_keys_);
+
+        uint8_t counter[BLOCK_SIZE];
+        uint8_t block  [BLOCK_SIZE];
+
+        std::memcpy(counter, init_block, sizeof(counter));
+
+        for (size_t i = 0, bi = BLOCK_SIZE; i < size; i++, bi++) {
+            // Prepare next block
+            if (bi == BLOCK_SIZE) {
+                EncryptBlock(counter, block, round_keys_);
+                IncBlock(counter);
+                bi = 0;
+            }
+
+            out[i] = in[i] ^ block[i];
+        }
+
+        return true;
+    }
+
+    template <bool ReUseKey = true>
+    bool DecryptCTR(const uint8_t in[], uint8_t out[], const uint8_t init_block[], size_t size, const uint8_t *key = nullptr)
+    {
+        return EncryptCTR<ReUseKey>(in, out, init_block, size, key);
+    }
+
 private:
     static constexpr size_t NR_DEFAULT = 10; // default amount of rounds (AES-128)
     static constexpr size_t NK_DEFAULT = 4;  // length of key in 32-bit words (AES-128)
@@ -154,6 +190,19 @@ private:
             tmp[j] = state[row_num][(j + shift) % AES::NB];
 
         std::memcpy(state[row_num], tmp, AES::NB * sizeof(uint8_t));
+    }
+
+    void IncBlock(uint8_t block[BLOCK_SIZE])
+    {
+        for (int i = (BLOCK_SIZE - 1); i >= 0; --i) {
+            if (block[i] == (1 << (sizeof(block[i]) * CHAR_BIT)) - 1) {
+                block[i] = 0;
+                continue; // increment higher byte because of overflow
+            }
+
+            block[i] += 1; // increment current byte
+            break;
+        }
     }
 
     // AES-round procedures
