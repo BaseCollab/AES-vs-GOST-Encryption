@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(ENC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(ENC_BINARY_ROOT ${CMAKE_CURRENT_BINARY_DIR})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -Werror -Wshadow")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -pedantic -Wall -Wextra -Werror -Wshadow")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
 # --------------------------clang-format--------------------------------------
@@ -56,6 +56,6 @@ add_subdirectory(tests)
 
 # ----------------------------------------------------------------------------
 
-add_executable(enc main.cpp)
+add_executable(enc main.cpp crypto_workers.cpp)
 target_include_directories(enc PUBLIC ${ENC_ROOT})
 target_link_libraries(enc PUBLIC enc_static)
