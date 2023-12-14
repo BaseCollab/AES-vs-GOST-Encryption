@@ -68,21 +68,20 @@ TEST(GostTest, EncryptGammingBig)
     }
 
     // message size should be multiple of 8
-    constexpr size_t message_size = 79;
-    uint8_t message[message_size] = {};
-    char text[] = "Hello world! Hello world! Hello world! Hello world! Hello world! Hello world!";
-    std::memcpy(message, text, message_size * sizeof(uint8_t));
+    const char text[] = "Hello world! Hello world! Hello world! Hello world! Hello world! Hello world!";
+    uint8_t message[sizeof(text)] = {0};
+    std::memcpy(message, text, sizeof(text));
 
     uint64_t uint64_max_val = -1;
     uint64_t nonce = rand() % (uint64_max_val);
 
-    uint8_t encr_msg[message_size] = {};
-    Gost::EncryptCTR(nonce, key, message, message_size, encr_msg);
+    uint8_t encr_msg[sizeof(text)] = {};
+    Gost::EncryptCTR(nonce, key, message, sizeof(text), encr_msg);
 
-    uint8_t decr_msg[message_size] = {};
-    Gost::DecryptCTR(nonce, key, encr_msg, message_size, decr_msg);
+    uint8_t decr_msg[sizeof(text)] = {};
+    Gost::DecryptCTR(nonce, key, encr_msg, sizeof(text), decr_msg);
 
-    for (size_t i = 0; i < message_size; ++i) {
+    for (size_t i = 0; i < sizeof(text); ++i) {
         ASSERT_EQ(decr_msg[i], message[i]);
     }
 }

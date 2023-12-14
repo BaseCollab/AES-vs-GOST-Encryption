@@ -158,7 +158,7 @@ void AES::MixColumnsInv(AES::State state)
 }
 
 void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys)
-{ 
+{
     switch (hw_support_)
     {
         case HardwareSupport::AES_CRYPTO_EXTENSION:
@@ -181,7 +181,7 @@ void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
 #elif defined(__x86_64__) || defined(__amd64__) || (defined(_M_X64) || defined(_M_AMD64))
 
             __m128i state = _mm_loadu_si128((__m128i *) in);
-            state = _mm_xor_si128(state, _mm_loadu_si128((__m128i *)(round_keys)));
+            state = _mm_xor_si128(state, _mm_loadu_si128((__m128i *) round_keys));
 
             for (size_t round = 1; round < n_rounds_; ++round) {
                 state = _mm_aesenc_si128(state, _mm_loadu_si128((__m128i *)(round_keys + round * sizeof(word_t) * AES::NB)));
@@ -207,7 +207,7 @@ void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
                 ShiftRows(state);
                 MixColumns(state);
             }
-            
+
             AddRoundKey(state, round_keys + (n_rounds_ - 1) * sizeof(word_t) * AES::NB);
             SubBytes(state);
             ShiftRows(state);
@@ -217,7 +217,7 @@ void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
             for (size_t i = 0; i < sizeof(word_t); i++)
                 for (size_t j = 0; j < AES::NB; j++)
                     out[i + sizeof(word_t) * j] = state[i][j];
-        }    
+        }
     }
 }
 
@@ -247,10 +247,10 @@ void AES::DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_k
 #elif defined(__x86_64__) || defined(__amd64__) || (defined(_M_X64) || defined(_M_AMD64))
 
             __m128i state = _mm_loadu_si128((__m128i *) in);
-            state = _mm_xor_si128(state, _mm_loadu_si128((__m128i *) round_keys));
+            state = _mm_xor_si128(state, _mm_loadu_si128((__m128i *)(round_keys + n_rounds_ * sizeof(word_t) * AES::NB)));
 
             for (size_t round = n_rounds_ - 1; round > 0; --round) {
-                state = _mm_aesdec_si128(state, _mm_loadu_si128((__m128i *)(round_keys + round * sizeof(word_t) * AES::NB)));
+                state = _mm_aesdec_si128(state, _mm_aesimc_si128(_mm_loadu_si128((__m128i *)(round_keys + round * sizeof(word_t) * AES::NB))));
             }
 
             state = _mm_aesdeclast_si128(state, _mm_loadu_si128((__m128i *) round_keys));
