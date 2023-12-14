@@ -19,11 +19,17 @@ public:
         AES_256
     };
 
+    enum class HardwareSupport {
+        NONE,
+        AES_CRYPTO_EXTENSION,
+    };
+
 public:
     NO_COPY_SEMANTIC(AES);
     NO_MOVE_SEMANTIC(AES);
 
-    explicit AES(const KeyLength key_length = KeyLength::AES_256);
+    explicit AES(const KeyLength key_length = KeyLength::AES_256, 
+                 const HardwareSupport hw_sup = HardwareSupport::AES_CRYPTO_EXTENSION);
     ~AES() = default;
 
 public:
@@ -121,7 +127,7 @@ public:
                 bi = 0;
             }
 
-            out[i] = in[i] ^ block[i];
+            out[i] = in[i] ^ block[i % BLOCK_SIZE];
         }
 
         return true;
@@ -221,6 +227,8 @@ private:
     size_t key_length_ {NK_DEFAULT};
 
     uint8_t round_keys_[sizeof(word_t) * NB * (NR_MAX + 1)] {0};
+    
+    HardwareSupport hw_support_ {HardwareSupport::NONE};
 
 private:
     static constexpr uint8_t SBOX[][16] = {

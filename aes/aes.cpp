@@ -5,8 +5,28 @@
 #include <cstdint>
 #include <cstring>
 
-AES::AES(const AES::KeyLength key_length)
+#if defined(__arm__) || defined(__aarch32__) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM)
+    #if defined(__ARM_NEON) || defined(_MSC_VER)
+        #include <arm_neon.h>
+    #endif
+
+    // GCC and LLVM Clang, but not Apple Clang
+    #if defined(__GNUC__) && !defined(__apple_build_version__)
+        #if defined(__ARM_ACLE) || defined(__ARM_FEATURE_CRYPTO)
+            #include <arm_acle.h>
+        #endif
+    #endif
+#endif
+
+#if defined(__x86_64__) || defined(__amd64__) || (defined(_M_X64) || defined(_M_AMD64))
+    #include <immintrin.h>
+    #include <emmintrin.h>
+#endif
+
+AES::AES(const AES::KeyLength key_length, const HardwareSupport hw_sup)
 {
+    hw_support_ = hw_sup;
+
     switch (key_length) {
         case AES::KeyLength::AES_128:
             n_rounds_   = 10;
@@ -138,53 +158,131 @@ void AES::MixColumnsInv(AES::State state)
 }
 
 void AES::EncryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys)
-{
-    AES::State state;
+{ 
+    switch (hw_support_)
+    {
+        case HardwareSupport::AES_CRYPTO_EXTENSION:
+        {
+#if defined(__arm__) || defined(__aarch32__) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM)
 
-    for (size_t i = 0; i < sizeof(word_t); i++)
-        for (size_t j = 0; j < AES::NB; j++)
-            state[i][j] = in[i + sizeof(word_t) * j];
+            uint8x16_t state = vld1q_u8(in);
 
-    AddRoundKey(state, round_keys);
+            for (size_t round = 0; round < (n_rounds_ - 1); ++round) {
+                state = vaeseq_u8 (state, vld1q_u8(round_keys + round * sizeof(word_t) * AES::NB));
+                state = vaesmcq_u8(state);
+            }
 
-    for (size_t round = 1; round < n_rounds_; round++) {
-        SubBytes(state);
-        ShiftRows(state);
-        MixColumns(state);
-        AddRoundKey(state, round_keys + round * sizeof(word_t) * AES::NB);
+            state = vaeseq_u8(state, vld1q_u8(round_keys + (n_rounds_ - 1) * sizeof(word_t) * AES::NB));
+            state = veorq_u8 (state, vld1q_u8(round_keys +  n_rounds_      * sizeof(word_t) * AES::NB));
+
+            vst1q_u8(out, state);
+            break;
+
+#elif defined(__x86_64__) || defined(__amd64__) || (defined(_M_X64) || defined(_M_AMD64))
+
+            __m128i state = _mm_loadu_si128((__m128i *) in);
+            state = _mm_xor_si128(state, _mm_loadu_si128((__m128i *)(round_keys)));
+
+            for (size_t round = 1; round < n_rounds_; ++round) {
+                state = _mm_aesenc_si128(state, _mm_loadu_si128((__m128i *)(round_keys + round * sizeof(word_t) * AES::NB)));
+            }
+
+            state = _mm_aesenclast_si128(state, _mm_loadu_si128((__m128i *)(round_keys + n_rounds_ * sizeof(word_t) * AES::NB)));
+            _mm_storeu_si128((__m128i *) out, state);
+            break;
+#endif
+        }
+
+        case HardwareSupport::NONE:
+        {
+            AES::State state;
+
+            for (size_t i = 0; i < sizeof(word_t); i++)
+                for (size_t j = 0; j < AES::NB; j++)
+                    state[i][j] = in[i + sizeof(word_t) * j];
+
+            for (size_t round = 0; round < (n_rounds_ - 1); round++) {
+                AddRoundKey(state, round_keys + round * sizeof(word_t) * AES::NB);
+                SubBytes(state);
+                ShiftRows(state);
+                MixColumns(state);
+            }
+            
+            AddRoundKey(state, round_keys + (n_rounds_ - 1) * sizeof(word_t) * AES::NB);
+            SubBytes(state);
+            ShiftRows(state);
+
+            AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
+
+            for (size_t i = 0; i < sizeof(word_t); i++)
+                for (size_t j = 0; j < AES::NB; j++)
+                    out[i + sizeof(word_t) * j] = state[i][j];
+        }    
     }
-
-    SubBytes(state);
-    ShiftRows(state);
-    AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
-
-    for (size_t i = 0; i < sizeof(word_t); i++)
-        for (size_t j = 0; j < AES::NB; j++)
-            out[i + sizeof(word_t) * j] = state[i][j];
 }
 
 void AES::DecryptBlock(const uint8_t in[], uint8_t out[], const uint8_t *round_keys)
 {
-    AES::State state;
+    switch (hw_support_)
+    {
+        case HardwareSupport::AES_CRYPTO_EXTENSION:
+        {
+#if defined(__arm__) || defined(__aarch32__) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM)
 
-    for (size_t i = 0; i < sizeof(word_t); i++)
-        for (size_t j = 0; j < AES::NB; j++)
-            state[i][j] = in[i + sizeof(word_t) * j];
+            uint8x16_t state = vld1q_u8(in);
 
-    AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
+            state = veorq_u8(state, vld1q_u8(round_keys + n_rounds_ * sizeof(word_t) * AES::NB));
 
-    for (size_t round = n_rounds_ - 1; round > 0; round--) {
-        SubBytesInv(state);
-        ShiftRowsInv(state);
-        AddRoundKey(state, round_keys + round * sizeof(word_t) * AES::NB);
-        MixColumnsInv(state);
+            for (size_t round = n_rounds_ - 1; round > 0; --round)
+            {
+                state = vaesdq_u8  (state, vld1q_u8(round_keys + round * sizeof(word_t) * AES::NB));
+                state = vaesimcq_u8(state);
+            }
+
+            state = vaesdq_u8(state, vld1q_u8(round_keys));
+
+            vst1q_u8(out, state);
+            break;
+
+#elif defined(__x86_64__) || defined(__amd64__) || (defined(_M_X64) || defined(_M_AMD64))
+
+            __m128i state = _mm_loadu_si128((__m128i *) in);
+            state = _mm_xor_si128(state, _mm_loadu_si128((__m128i *) round_keys));
+
+            for (size_t round = n_rounds_ - 1; round > 0; --round) {
+                state = _mm_aesdec_si128(state, _mm_loadu_si128((__m128i *)(round_keys + round * sizeof(word_t) * AES::NB)));
+            }
+
+            state = _mm_aesdeclast_si128(state, _mm_loadu_si128((__m128i *) round_keys));
+            _mm_storeu_si128((__m128i *) out, state);
+            break;
+#endif
+        }
+
+        case HardwareSupport::NONE:
+        {
+            AES::State state;
+
+            for (size_t i = 0; i < sizeof(word_t); i++)
+                for (size_t j = 0; j < AES::NB; j++)
+                    state[i][j] = in[i + sizeof(word_t) * j];
+
+            AddRoundKey(state, round_keys + n_rounds_ * sizeof(word_t) * AES::NB);
+
+            for (size_t round = n_rounds_ - 1; round > 0; --round) {
+                ShiftRowsInv(state);
+                SubBytesInv(state);
+                AddRoundKey(state, round_keys + round * sizeof(word_t) * AES::NB);
+                MixColumnsInv(state);
+            }
+
+            ShiftRowsInv(state);
+            SubBytesInv(state);
+            AddRoundKey(state, round_keys);
+
+            for (size_t i = 0; i < sizeof(word_t); i++)
+                for (size_t j = 0; j < AES::NB; j++)
+                    out[i + sizeof(word_t) * j] = state[i][j];
+        }
     }
-
-    SubBytesInv(state);
-    ShiftRowsInv(state);
-    AddRoundKey(state, round_keys);
-
-    for (size_t i = 0; i < sizeof(word_t); i++)
-        for (size_t j = 0; j < AES::NB; j++)
-            out[i + sizeof(word_t) * j] = state[i][j];
 }
