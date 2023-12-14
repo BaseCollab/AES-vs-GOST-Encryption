@@ -10,10 +10,12 @@ void Cipher::Encrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
 
     size_t j = 0;
 
+    uint8_t* state = reinterpret_cast<uint8_t*>(keyStream.state);
+
     for (j = 0; j < (len >> kBlockSizeShift); j++)
     {
-        Block(key, counter + j, nonce, &keyStream);
-        BitOps::XorArray(ciphertext, plaintext, keyStream.buffer, kBlockSize);
+        ProcessBlock(key, counter + j, nonce, &keyStream);
+        BitOps::XorArray(ciphertext, plaintext, state, kBlockSize);
 
         ciphertext += kBlockSize;
         plaintext  += kBlockSize;
@@ -21,8 +23,8 @@ void Cipher::Encrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
 
     if (len & kBlockSizeMask)
     {
-        Block(key, counter + j, nonce, &keyStream);
-        BitOps::XorArray(ciphertext, plaintext, keyStream.buffer, len & kBlockSizeMask);
+        ProcessBlock(key, counter + j, nonce, &keyStream);
+        BitOps::XorArray(ciphertext, plaintext, state, len & kBlockSizeMask);
     }
 }
 
@@ -32,13 +34,13 @@ void Cipher::Decrypt(const Key& key, const uint32_t counter, const Nonce& nonce,
     Encrypt(key, counter, nonce, ciphertext, plaintext, len);
 }
 
-void Cipher::Block(const Key& key, const uint32_t counter, const Nonce& nonce, State* state)
+void Cipher::ProcessBlock(const Key& key, const uint32_t counter, const Nonce& nonce, State* state)
 {
     state->Init(key, counter, nonce);
     State work = *state;
 
     for (size_t i = 0; i < Cipher::kBlockInnerIters; i++)
-        InnerBlock(&work);
+        ProcessInnerBlock(&work);
 
     *state += work;
 }
@@ -46,7 +48,7 @@ void Cipher::Block(const Key& key, const uint32_t counter, const Nonce& nonce, S
 #define QROUND_(a, b, c, d) \
         QuarterRound(state->state + a, state->state + b, state->state + c, state->state + d)
 
-void Cipher::InnerBlock(State* state)
+void Cipher::ProcessInnerBlock(State* state)
 {
     QROUND_(0, 4,  8, 12);
     QROUND_(1, 5,  9, 13);

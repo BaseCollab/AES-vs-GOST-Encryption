@@ -56,7 +56,7 @@ TEST(ChaCha20Test, StateInit)
     ASSERT_EQ(state.state[15], 0x00000000);
 }
 
-TEST(ChaCha20Test, BlockInner)
+TEST(ChaCha20Test, ProcessBlockInner)
 {
     Key key{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -70,8 +70,28 @@ TEST(ChaCha20Test, BlockInner)
     Cipher::State state;
     state.Init(key, 1, nonce);
 
+    ASSERT_EQ(state.state[0],  0x61707865);
+    ASSERT_EQ(state.state[1],  0x3320646e);
+    ASSERT_EQ(state.state[2],  0x79622d32);
+    ASSERT_EQ(state.state[3],  0x6b206574);
+
+    ASSERT_EQ(state.state[4],  0x03020100);
+    ASSERT_EQ(state.state[5],  0x07060504);
+    ASSERT_EQ(state.state[6],  0x0b0a0908);
+    ASSERT_EQ(state.state[7],  0x0f0e0d0c);
+
+    ASSERT_EQ(state.state[8],  0x13121110);
+    ASSERT_EQ(state.state[9],  0x17161514);
+    ASSERT_EQ(state.state[10], 0x1b1a1918);
+    ASSERT_EQ(state.state[11], 0x1f1e1d1c);
+
+    ASSERT_EQ(state.state[12], 0x00000001);
+    ASSERT_EQ(state.state[13], 0x09000000);
+    ASSERT_EQ(state.state[14], 0x4a000000);
+    ASSERT_EQ(state.state[15], 0x00000000);
+
     for (size_t i = 0; i < Cipher::kBlockInnerIters; i++)
-        Cipher::InnerBlock(&state);
+        Cipher::ProcessInnerBlock(&state);
 
     ASSERT_EQ(state.state[0],  0x837778ab);
     ASSERT_EQ(state.state[1],  0xe238d763);
@@ -94,7 +114,7 @@ TEST(ChaCha20Test, BlockInner)
     ASSERT_EQ(state.state[15], 0x4e3c50a2);
 }
 
-TEST(ChaCha20Test, Block)
+TEST(ChaCha20Test, ProcessBlock)
 {
     Key key{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -115,9 +135,9 @@ TEST(ChaCha20Test, Block)
                                          0xcb, 0xd0, 0x83, 0xe8, 0xa2, 0x50, 0x3c, 0x4e};
 
     Cipher::State state;
-    Cipher::Block(key, 1, nonce, &state);
+    Cipher::ProcessBlock(key, 1, nonce, &state);
 
-    ASSERT_TRUE(memcmp(block, state.buffer, sizeof(block)) == 0);
+    ASSERT_TRUE(memcmp(block, state.state, sizeof(block)) == 0);
 }
 
 TEST(ChaCha20Test, Encrypt)

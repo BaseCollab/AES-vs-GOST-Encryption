@@ -20,14 +20,20 @@ struct Key
 
     template <typename ... T>
     explicit Key(T... ts) :
-        key{static_cast<uint8_t>(ts)...}
-    {}
-
-    union
+        state{}
     {
-        uint8_t key[kKeyByteSize];
-        uint32_t state[kKeyStateSize];
-    };
+        uint8_t key[kKeyByteSize] = {static_cast<uint8_t>(ts)...};
+
+        memcpy(state, key, sizeof(key));
+    }
+
+    explicit Key(uint8_t array[kKeyByteSize]) :
+        state{}
+    {
+        memcpy(state, array, kKeyByteSize);
+    }
+
+    uint32_t state[kKeyStateSize];
 };
 
 struct Nonce
@@ -38,14 +44,20 @@ struct Nonce
 
     template <typename ... T>
     explicit Nonce(T... ts) :
-        nonce{static_cast<uint8_t>(ts)...}
-    {}
-
-    union
+        state{}
     {
-        uint8_t nonce[kNonceByteSize];
-        uint32_t state[kNonceStateSize];
-    };
+        uint8_t nonce[kNonceByteSize] = {static_cast<uint8_t>(ts)...};
+
+        memcpy(state, nonce, sizeof(nonce));
+    }
+
+    explicit Nonce(uint8_t array[kNonceByteSize]) :
+        state{}
+    {
+        memcpy(state, array, kNonceByteSize);
+    }
+
+    uint32_t state[kNonceStateSize];
 };
 
 class Cipher
@@ -62,8 +74,8 @@ public:
 private:
     FRIEND_TEST(ChaCha20Test, QuaterRound);
     FRIEND_TEST(ChaCha20Test, StateInit);
-    FRIEND_TEST(ChaCha20Test, BlockInner);
-    FRIEND_TEST(ChaCha20Test, Block);
+    FRIEND_TEST(ChaCha20Test, ProcessBlockInner);
+    FRIEND_TEST(ChaCha20Test, ProcessBlock);
 
     static constexpr size_t kBlockSizeShift  = 6;
     static constexpr size_t kBlockSizeMask   = 0x3F;
@@ -96,36 +108,29 @@ private:
             return *this;
         }
 
-        inline void Init(const Key& initKey, const uint32_t counter, const Nonce& initNonce)
+        inline void Init(const Key& key, const uint32_t counter, const Nonce& nonce)
         {
-            memcpy(input.constant, kConstant, sizeof(kConstant));
+            static constexpr size_t kConstantOffset =  0;
+            static constexpr size_t kKeyOffset      = 16;
+            static constexpr size_t kCounterOffset  = 48;
+            static constexpr size_t kNonceOffset    = 52;
 
-            input.key          = initKey;
-            input.blockCounter = counter;
-            input.nonce        = initNonce;
+            uint8_t* base = reinterpret_cast<uint8_t*>(state);
+
+            memcpy(base + kConstantOffset, kConstant,   sizeof(kConstant));
+            memcpy(base + kKeyOffset,      key.state,   Key::kKeyByteSize);
+            memcpy(base + kCounterOffset,  &counter,    sizeof(uint32_t));
+            memcpy(base + kNonceOffset,    nonce.state, Nonce::kNonceByteSize);
         }
 
-        union
-        {
-            struct
-            {
-                uint32_t constant[kNumConstant];
-                Key      key;
-                uint32_t blockCounter;
-                Nonce    nonce;
-
-            } input;
-
-            uint8_t  buffer[kBlockSize];
-            uint32_t state[kStateSize];
-        };
+        uint32_t state[kStateSize];
     };
 
     static_assert(sizeof(State) == State::kStateSize * sizeof(uint32_t));
 
-    static void Block(const Key& key, const uint32_t counter, const Nonce& nonce, State* out);
+    static void ProcessBlock(const Key& key, const uint32_t counter, const Nonce& nonce, State* out);
 
-    static void InnerBlock(State* state);
+    static void ProcessInnerBlock(State* state);
 
     static void QuarterRound(uint32_t* a, uint32_t* b, uint32_t* c, uint32_t* d);
 
