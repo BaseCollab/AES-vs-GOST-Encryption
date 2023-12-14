@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(SOURCES main.cpp)
+set(SOURCES main.cpp aes/aes_test.cpp)
 
 add_subdirectory(gost)
 add_subdirectory(chacha20)

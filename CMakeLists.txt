@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(ENC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(ENC_BINARY_ROOT ${CMAKE_CURRENT_BINARY_DIR})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -Werror -Wshadow")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -pedantic -Wall -Wextra -Werror -Wshadow")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
 # --------------------------clang-format--------------------------------------
@@ -25,13 +25,6 @@ add_custom_target(clang-force-format
     ${ALL_SOURCES_FILES}
 )
 
-# -----------------------------openssl----------------------------------------
-
-find_package(OpenSSL REQUIRED)
-
-message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
-message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
-
 # --------------------------project-libs--------------------------------------
 
 add_subdirectory(aes)
@@ -43,7 +36,6 @@ target_link_libraries(enc_static PUBLIC
     aes_impl
     gost_impl
     chacha20_impl
-    ${OPENSSL_LIBRARIES}
 )
 
 # --------------------------google-tests--------------------------------------
@@ -64,6 +56,6 @@ add_subdirectory(tests)
 
 # ----------------------------------------------------------------------------
 
-add_executable(enc main.cpp)
+add_executable(enc main.cpp crypto_workers.cpp)
 target_include_directories(enc PUBLIC ${ENC_ROOT})
 target_link_libraries(enc PUBLIC enc_static)
