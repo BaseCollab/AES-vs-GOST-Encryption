@@ -36,6 +36,8 @@ build
 
 # Text
 *.txt
+*.raw
+*.enc
 
 # Vs code
 .vscode
