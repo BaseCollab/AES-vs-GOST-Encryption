@@ -1,6 +1,6 @@
-#include <aes/aes.h>
-
 #include <gtest/gtest.h>
+
+#include "aes/aes.h"
 
 TEST(AES_Test, AES_ECB)
 {

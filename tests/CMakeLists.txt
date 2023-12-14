@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(SOURCES main.cpp aes/aes_test.cpp)
+set(SOURCES main.cpp)
 
+add_subdirectory(aes)
 add_subdirectory(gost)
 add_subdirectory(chacha20)
 
@@ -9,12 +10,14 @@ add_library(unit_test_main OBJECT main.cpp)
 
 add_dependencies(unit_tests
     unit_test_main
+    aes_test_impl
     gost_tests_impl
     chacha20_test_impl
 )
 
 target_link_libraries(unit_tests PUBLIC
     unit_test_main
+    aes_test_impl
     gost_tests_impl
     chacha20_test_impl
 )
