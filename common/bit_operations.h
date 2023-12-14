@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace BitOps {
+namespace bitops {
 
 // clang-format off
 inline void XorArray(uint8_t *out, const uint8_t *lhs, const uint8_t *rhs, const size_t size)
@@ -69,6 +69,11 @@ inline void XorArray(uint8_t *out, const uint8_t *lhs, const uint8_t *rhs, const
 }
 // clang-format on
 
-} // namespace BitOps
+inline uint64_t GetQWord(uint32_t a, uint32_t b)
+{
+    return (static_cast<uint64_t>(a) << 32) | static_cast<uint64_t>(b);
+}
+
+} // namespace bitops
 
 #endif // ENCRYPTION_COMMON_BIT_OPERATIONS_H
