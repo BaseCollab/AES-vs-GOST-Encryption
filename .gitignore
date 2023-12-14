@@ -34,5 +34,8 @@ build
 *.out
 *.app
 
+# Text
+*.txt
+
 # Vs code
 .vscode

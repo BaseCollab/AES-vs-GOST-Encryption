@@ -36,12 +36,14 @@ message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
 
 add_subdirectory(aes)
 add_subdirectory(argparser)
+add_subdirectory(benchmark)
 add_subdirectory(chacha20)
 
 add_library(enc_static STATIC)
 target_link_libraries(enc_static PUBLIC
     aes_impl
     argparser_impl
+    benchmark_impl
     chacha20_impl
     ${OPENSSL_LIBRARIES}
 )
