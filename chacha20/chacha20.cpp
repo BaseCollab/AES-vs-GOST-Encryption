@@ -1,7 +1,7 @@
 #include "chacha20.h"
 
 // clang-format off
-namespace ChaCha20 {
+namespace chacha20 {
 
 void Cipher::Encrypt(const Key &key, const uint32_t counter, const Nonce &nonce,
                      const uint8_t *plaintext, uint8_t *ciphertext, const size_t len)
@@ -71,5 +71,5 @@ void Cipher::QuarterRound(uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d)
 
 #undef ROTL_
 
-} // namespace ChaCha20
+} // namespace chacha20
 // clang-format on

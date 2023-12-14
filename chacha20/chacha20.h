@@ -10,7 +10,7 @@
 #include "common/bit_operations.h"
 
 // clang-format off
-namespace ChaCha20 {
+namespace chacha20 {
 
 struct Key {
     static constexpr size_t KEY_BIT_SIZE   = 256;
@@ -125,7 +125,7 @@ private:
 
 }; // class Cipher
 
-} // namespace ChaCha20
+} // namespace chacha20
 // clang-format on
 
 #endif // ENCRYPTION_CHACHA20_CHACHA20_H

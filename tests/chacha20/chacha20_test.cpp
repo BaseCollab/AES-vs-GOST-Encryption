@@ -3,7 +3,7 @@
 #include "chacha20/chacha20.h"
 
 // clang-format off
-namespace ChaCha20 {
+namespace chacha20 {
 
 TEST(ChaCha20Test, QuaterRound)
 {
@@ -153,5 +153,5 @@ TEST(ChaCha20Test, Encrypt)
     ASSERT_TRUE(memcmp(ciphertext, encrypted, sizeof(ciphertext)) == 0);
 }
 
-} // namespace ChaCha20
+} // namespace chacha20
 // clang-format on
