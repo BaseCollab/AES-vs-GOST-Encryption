@@ -4,14 +4,14 @@
 #include <iostream>
 #include <cstdint>
 
-#include "crypto_workers.h"
+#include "benchmarking/benchmarking.h"
 
 int main(int argc, char *argv[])
 {
     (void) argc;
-    (void) argv;    
+    (void) argv;
 
-    AESMainWorker(0x10, 0x1000000);
+    BenchmarkWorker(0x10, 0x1000000);
 
     return EXIT_SUCCESS;
 }

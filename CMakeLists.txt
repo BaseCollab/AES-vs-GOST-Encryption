@@ -30,12 +30,14 @@ add_custom_target(clang-force-format
 add_subdirectory(aes)
 add_subdirectory(chacha20)
 add_subdirectory(gost_28147-89)
+add_subdirectory(benchmarking)
 
 add_library(enc_static STATIC)
 target_link_libraries(enc_static PUBLIC
     aes_impl
     gost_impl
     chacha20_impl
+    bench_impl
 )
 
 # --------------------------google-tests--------------------------------------
@@ -56,6 +58,6 @@ add_subdirectory(tests)
 
 # ----------------------------------------------------------------------------
 
-add_executable(enc main.cpp crypto_workers.cpp)
+add_executable(enc main.cpp)
 target_include_directories(enc PUBLIC ${ENC_ROOT})
 target_link_libraries(enc PUBLIC enc_static)
