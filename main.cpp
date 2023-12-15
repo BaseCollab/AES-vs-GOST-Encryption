@@ -4,6 +4,7 @@
 #include "common/file.h"
 
 #include <cstdlib>
+#include <assert.h>
 
 int main(int argc, char *argv[])
 {
