@@ -29,7 +29,7 @@ public:
     NO_MOVE_SEMANTIC(AES);
 
     explicit AES(const KeyLength key_length = KeyLength::AES_256,
-                 const HardwareSupport hw_sup = HardwareSupport::AES_CRYPTO_EXTENSION);
+                 const HardwareSupport hw_sup = HardwareSupport::NONE);
     ~AES() = default;
 
 public:
