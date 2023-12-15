@@ -14,7 +14,7 @@ void Cipher::Encrypt(const Key &key, const uint32_t counter, const Nonce &nonce,
 
     for (j = 0; j < (len >> BLOCK_SIZE_SHIFT); j++) {
         ProcessBlock(key, counter + j, nonce, &keyStream);
-        BitOps::XorArray(ciphertext, plaintext, state, BLOCK_SIZE);
+        bitops::XorArray(ciphertext, plaintext, state, BLOCK_SIZE);
 
         ciphertext += BLOCK_SIZE;
         plaintext  += BLOCK_SIZE;
@@ -22,7 +22,7 @@ void Cipher::Encrypt(const Key &key, const uint32_t counter, const Nonce &nonce,
 
     if (len & BLOCK_SIZE_MASK) {
         ProcessBlock(key, counter + j, nonce, &keyStream);
-        BitOps::XorArray(ciphertext, plaintext, state, len & BLOCK_SIZE_MASK);
+        bitops::XorArray(ciphertext, plaintext, state, len & BLOCK_SIZE_MASK);
     }
 }
 

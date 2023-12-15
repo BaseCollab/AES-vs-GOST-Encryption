@@ -1,5 +1,5 @@
 #include "argparser/parser.h"
-#include "benchmark/benchmark.h"
+#include "benchmarking/benchmarking.h"
 #include "chacha20/chacha20.h"
 #include "common/file.h"
 
@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
     if (encrypt_mode == ArgParser::EncryptMode::BENCHMARK)
     {
-        Benchmark();
+        BenchmarkWorker(0x10, 0x1000000);
         return EXIT_SUCCESS;
     }
 
